@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Maipú a 400 metros</title>
+<meta name="description" content="Plataforma del Trabajo Final de Cartografía Aplicada (UMaza 2026): StoryMap y visor GIS sobre crecimiento urbano, transporte público, relieve y drenaje en Maipú, Mendoza.">
+<link rel="icon" href="img/logo_umaza.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body data-vista="storymap">
+<header class="barra">
+  <a class="marca" href="#/storymap" aria-label="Maipú a 400 metros, inicio de la historia"><img src="img/logo_umaza.png" alt="" width="34" height="34"><span>Maipú a 400 metros</span></a>
+  <nav class="nav" aria-label="Secciones">
+    <a href="#/storymap" data-v="storymap">Historia</a>
+    <a href="#/visor" data-v="visor" class="principal">Visor GIS <span aria-hidden="true">↗</span></a>
+    <a href="#/acerca" data-v="acerca">Acerca</a>
+  </nav>
+</header>
+<main>
+  <div class="view" id="view-storymap"></div>
+  <div class="view" id="view-visor" hidden></div>
+  <div class="view" id="view-acerca" hidden></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script src="js/datos.js"></script>
+<script src="js/simbologia.js"></script>
+<script src="js/catalogo.js"></script>
+<script src="js/mapa.js"></script>
+<script src="js/graficos.js"></script>
+<script src="js/contenido.js"></script>
+<script src="js/storymap.js"></script>
+<script src="js/visor.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
