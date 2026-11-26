@@ -88,8 +88,8 @@
     root.querySelectorAll('.paso').forEach(p => p.classList.toggle('activo', p.dataset.i == i && p.dataset.j == j));
     wrap.querySelector('#smCap').textContent = `${num(i)} · ${cap.kicker}`;
     const t = ++turno;
-    // Pequeña espera: si se baja rápido y se saltean pasos, solo se dibuja el último.
-    cola = cola.then(() => new Promise(r => setTimeout(r, 90))).then(async () => { if (t !== turno) return; await G.conjunto(paso.capas); if (t === turno) leyenda(paso); }).catch(console.error);
+    // Un cuadro de espera: si se saltean pasos al bajar rápido, solo se dibuja el último.
+    cola = cola.then(() => new Promise(r => requestAnimationFrame(() => r()))).then(async () => { if (t !== turno) return; await G.conjunto(paso.capas); if (t === turno) leyenda(paso); }).catch(console.error);
   }
 
   function marcarCapitulo(i) {
@@ -129,7 +129,7 @@
         graficos();
 
         // Pasos: el que cruza la franja media de la pantalla manda.
-        const obsPaso = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) irPaso(+en.target.dataset.i, +en.target.dataset.j); }), { root, rootMargin: esMovil() ? '-62% 0px -30% 0px' : '-45% 0px -45% 0px' });
+        const obsPaso = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) irPaso(+en.target.dataset.i, +en.target.dataset.j); }), { root, rootMargin: esMovil() ? '-50% 0px -25% 0px' : '-30% 0px -30% 0px' });
         root.querySelectorAll('.paso').forEach(p => obsPaso.observe(p));
         // Apenas una sección inmersiva asoma, el mapa ya está ahí con su primer paso.
         const obsInm = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting && pasoActual?.split(':')[0] != en.target.dataset.i) irPaso(+en.target.dataset.i, 0); }), { root, rootMargin: '0px 0px -20% 0px' });

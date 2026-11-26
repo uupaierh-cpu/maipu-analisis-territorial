@@ -26,6 +26,9 @@
   // ---------- Gestor de capas
   // Los elementos que no pasan el filtro se dibujan ocultos: así cambiar un filtro es solo reestilizar, no reconstruir.
   const OCULTO = { stroke: false, fill: false, opacity: 0, fillOpacity: 0, radius: 0 };
+  // Al volver a mostrar un elemento hay que restituir explícitamente lo que OCULTO apagó.
+  const VISIBLE = (g) => ({ stroke: true, opacity: 1, fill: g !== 'linea' });
+  const ver = (g, st, p) => Object.assign(VISIBLE(g), M4.estiloLeaflet(g, st, p));
   const firmaGeo = (c) => JSON.stringify([c.rotulos, c.rotulos ? c.filtro : null]);
   class Gestor {
     constructor(map, opts = {}) { this.map = map; this.capas = new Map(); this.dormidas = new Map(); this.orden = []; this.oyentes = []; this.interactivo = opts.interactivo !== false; this.alClic = opts.alClic; }
@@ -63,7 +66,7 @@
       if (c.layer && spec.tipo !== 'raster' && c.firma && firmaGeo(c) === c.firmaGeo) {
         volver(); M4.prepararEstilo(c.st, c.datos); const st = c.st, g = spec.geom;
         const fl = c.filtro; c.nVisibles = c.datos.filter(f => M4.pasaFiltro(f.properties, fl)).length;
-        c.layer.setStyle(f => M4.pasaFiltro(f.properties, fl) ? M4.estiloLeaflet(g === 'punto' ? 'punto' : g, st, f.properties) : OCULTO);
+        c.layer.setStyle(f => M4.pasaFiltro(f.properties, fl) ? ver(g === 'punto' ? 'punto' : g, st, f.properties) : OCULTO);
         c.firma = firma; this.avisar(); return c;
       }
       await this.dibujar(c); c.firma = JSON.stringify([c.st, c.filtro, c.rotulos]); c.firmaGeo = firmaGeo(c); this.avisar(); return c;
@@ -107,7 +110,7 @@
       // Un solo lienzo por capa, reutilizado en cada redibujo (antes se creaba uno nuevo cada vez y se acumulaban).
       const renderer = c.renderer || (c.renderer = L.canvas({ pane: c.pane, padding: .3, tolerance: spec.geom === 'linea' ? 4 : 0 }));
       const st = c.st, g = spec.geom === 'punto' ? 'punto' : spec.geom;
-      const estilo = (gg, p) => M4.pasaFiltro(p, fl) ? M4.estiloLeaflet(gg, st, p) : OCULTO;
+      const estilo = (gg, p) => M4.pasaFiltro(p, fl) ? ver(gg, st, p) : OCULTO;
       c.layer = L.geoJSON({ type: 'FeatureCollection', features: c.datos }, {
         pane: c.pane, renderer, interactive: this.interactivo && spec.interactiva !== false,
         style: f => estilo(g, f.properties),
