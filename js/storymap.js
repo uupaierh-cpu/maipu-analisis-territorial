@@ -44,7 +44,7 @@
       <div class="lectura">${T(c.intro)}</div>
       <section class="inmersivo" data-i="${i}" aria-label="Mapa del capítulo ${i + 1}">
         <div class="inm-slot"><div class="inm-ph"></div></div>
-        <div class="inm-pasos">${c.pasos.map((p, j) => `<div class="paso${p.ancho ? ' ancho' : ''}" data-i="${i}" data-j="${j}"><span class="paso-n">${j + 1} / ${c.pasos.length}</span>${T(p.texto)}</div>`).join('')}</div>
+        <div class="inm-pasos">${c.pasos.map((p, j) => `<div class="paso${p.ancho ? ' ancho' : ''}" data-i="${i}" data-j="${j}"><span class="paso-n">${j + 1} / ${c.pasos.length}</span>${T(p.texto)}<div class="paso-ley" aria-hidden="true"></div></div>`).join('')}</div>
       </section>
       ${c.cifras && c.cifras.length ? `<div class="banda-cifras n${c.cifras.length}">${c.cifras.map(([v, t, k]) => `<div><b class="${k}">${T(v)}</b><span>${T(t)}</span></div>`).join('')}</div>` : ''}
       ${(c.figuras || []).map(f => f.ancho ? `<figure class="figura ancha"><div class="fig-g tablewrap" data-g="${f.g}"></div></figure>` : `<figure class="figura"><div class="fig-g" data-g="${f.g}"></div><figcaption class="fig-txt">${T(f.texto)}</figcaption></figure>`).join('')}
@@ -69,6 +69,9 @@
     el.innerHTML = lista.map(c => { const it = (c.spec.tipo === 'raster' ? (c.spec.leyenda || []) : M4.leyendaDe(c.spec, c.st))
       .filter(e => !(c.filtro && c.filtro.op === '≠' && e.texto === c.filtro.valor) && !(c.filtro && c.filtro.op === '=' && e.texto && e.texto !== c.filtro.valor && c.st.modo === 'categorizado'));
       return it.length ? `<div class="lg-b"><div class="lg-t">${esc(c.spec.nombre)}</div>${it.map(M4.muestraHTML).join('')}</div>` : ''; }).join('');
+    // En celular la leyenda va dentro de la tarjeta activa, para no tapar el mapa.
+    root.querySelectorAll('.paso-ley').forEach(x => x.innerHTML = '');
+    const act = root.querySelector('.paso.activo .paso-ley'); if (act) act.innerHTML = el.innerHTML;
   }
 
   // Mueve el mapa a la sección inmersiva del capítulo i.
@@ -78,8 +81,8 @@
     if (capActual !== i) { capActual = i; const cap = M4.CAPITULOS[i]; map.fitBounds(M4.VISTAS[cap.vista], Object.assign({ animate: false }, encuadre())); }
   }
   const esMovil = () => window.matchMedia('(max-width: 900px)').matches;
-  // En compu las tarjetas van a la izquierda; en celular, abajo: el encuadre deja ese espacio libre.
-  const encuadre = () => esMovil() ? { paddingTopLeft: [0, 44], paddingBottomRight: [0, Math.round(root.clientHeight * .42)] } : { paddingTopLeft: [Math.min(480, innerWidth * .36), 0] };
+  // En compu las tarjetas van a la izquierda, sobre el mapa; en celular el mapa ocupa la mitad de arriba y el texto corre debajo.
+  const encuadre = () => esMovil() ? { paddingTopLeft: [0, 30], paddingBottomRight: [0, 8] } : { paddingTopLeft: [Math.min(480, innerWidth * .36), 0] };
 
   function irPaso(i, j) {
     const k = i + ':' + j; if (pasoActual === k) return; pasoActual = k;
@@ -135,7 +138,7 @@
         wrap.innerHTML = '<div id="smMap"></div><div class="sm-cap" id="smCap"></div><div class="sm-leyenda" id="smLeyenda" aria-live="polite"></div>';
         root.querySelector('.inmersivo .inm-slot').appendChild(wrap);
         const movil = window.matchMedia('(max-width: 900px)').matches;
-        map = M4.crearMapa(wrap.querySelector('#smMap'), { scrollWheelZoom: false, dragging: !movil, tap: false, touchZoom: !movil, doubleClickZoom: !movil, minZoom: 7 });
+        map = M4.crearMapa(wrap.querySelector('#smMap'), { scrollWheelZoom: false, dragging: !movil, tap: false, touchZoom: !movil, doubleClickZoom: !movil, minZoom: 7, zoomSnap: .25 });
         L.control.zoom({ position: 'topright' }).addTo(map); L.control.scale({ metric: true, imperial: false, position: 'bottomright', maxWidth: 110 }).addTo(map);
         G = new M4.Gestor(map, { alClic: (e) => {
           const r = G.identificar(e.latlng)[0]; if (!r) return; const f = r.features[0], s = r.capa.spec;
@@ -143,7 +146,7 @@
         graficos();
 
         // Pasos: el que cruza la franja media de la pantalla manda.
-        const obsPaso = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) irPaso(+en.target.dataset.i, +en.target.dataset.j); }), { root, rootMargin: esMovil() ? '-50% 0px -25% 0px' : '-30% 0px -30% 0px' });
+        const obsPaso = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) irPaso(+en.target.dataset.i, +en.target.dataset.j); }), { root, rootMargin: esMovil() ? '-57% 0px -10% 0px' : '-30% 0px -30% 0px' });
         root.querySelectorAll('.paso').forEach(p => obsPaso.observe(p));
         // Apenas una sección inmersiva asoma, el mapa ya está ahí con su primer paso.
         const obsInm = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting && pasoActual?.split(':')[0] != en.target.dataset.i) irPaso(+en.target.dataset.i, 0); }), { root, rootMargin: '0px 0px 30% 0px' });
