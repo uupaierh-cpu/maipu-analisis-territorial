@@ -157,3 +157,8 @@ lj = (cel[:, 3] > 0) & (cel[:, 6] == 1); ax.scatter(CX[lj], CY[lj], s=dot, marke
 for n in ['p_alimentadores.json', 'p_directos.json', 'p_modificaciones.json']: lineas(ax, D(n), '#6cc08f', 1.6, z=4, alpha=.8)
 contorno(ax, '#9a9ea4', 1.0, distritos='#2c2e31')
 guardar(fig, 'banner_9.jpg')
+
+# Miniaturas para el índice de capítulos (img/mini_N.jpg): mucho más livianas que los banners.
+for i in range(1, 9):
+    im = Image.open(f'{A}/img/banner_{i}.jpg'); w = 560
+    im.resize((w, round(im.height * w / im.width)), Image.LANCZOS).save(f'{A}/img/mini_{i}.jpg', quality=72, optimize=True, progressive=True)

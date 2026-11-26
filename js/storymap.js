@@ -34,11 +34,11 @@
           <li><b>Proponer y comparar</b> alternativas de red con criterios explícitos y elegir la más defendible.</li></ol></aside>
       </div>
       <h2 class="sec-t">Capítulos</h2>
-      <ol class="indice">${caps.map((c, i) => `<li><a href="#cap-${i + 1}" data-ir="${i}" style="background-image:url('img/banner_${i + 1}.jpg');--c:${c.color}"><span class="ix-n">${num(i)}</span><span class="ix-k">${esc(c.kicker)}</span><span class="ix-t">${esc(c.titulo)}</span></a></li>`).join('')}</ol>
+      <ol class="indice">${caps.map((c, i) => `<li><a href="#cap-${i + 1}" data-ir="${i}" data-bg="img/mini_${i + 1}.jpg" style="--c:${c.color}"><span class="ix-n">${num(i)}</span><span class="ix-k">${esc(c.kicker)}</span><span class="ix-t">${esc(c.titulo)}</span></a></li>`).join('')}</ol>
     </section>`;
     const capitulos = caps.map((c, i) => `
     <article class="capitulo" id="cap-${i + 1}" data-i="${i}" style="--c:${c.color}">
-      <header class="banner${c.claro ? ' claro' : ''}" style="background-image:url('img/banner_${i + 1}.jpg')">
+      <header class="banner${c.claro ? ' claro' : ''}" data-bg="img/banner_${i + 1}.jpg">
         <div class="banner-in"><span class="b-num">${num(i)}</span><p class="b-k">${esc(c.kicker)}</p><h2>${esc(c.titulo)}</h2>${c.bajada ? `<p class="b-dek">${esc(c.bajada)}</p>` : ''}</div>
       </header>
       <div class="lectura">${T(c.intro)}</div>
@@ -98,14 +98,26 @@
     if (location.hash !== h) history.replaceState(null, '', h);
   }
 
+  // Los gráficos se dibujan recién cuando se acercan a la pantalla.
   function graficos() {
-    root.querySelectorAll('[data-g]').forEach(el => {
+    const obs = new IntersectionObserver(ents => ents.forEach(en => { if (!en.isIntersecting) return; obs.unobserve(en.target); grafico(en.target); }), { root, rootMargin: '100% 0px' });
+    root.querySelectorAll('[data-g]').forEach(el => obs.observe(el));
+  }
+  function grafico(el) {
+    {
       const g = el.dataset.g;
       if (g === 'perfil') M4.perfil(el, map, 'L01');
       else if (g === 'matriz') M4.matriz(3, false).then(h => el.innerHTML = `<div class="gtit">Matriz de alternativas (columna resaltada: A3, la elegida)</div>${h}`);
       else if (M4.GRAFICOS[g]) M4.GRAFICOS[g](el);
-    });
+    }
   }
+  // Imágenes de banners e índice: se piden cuando faltan menos de dos pantallas para llegar.
+  function fondosDiferidos() {
+    const obs = new IntersectionObserver(ents => ents.forEach(en => { if (!en.isIntersecting) return; const el = en.target; obs.unobserve(el); el.style.backgroundImage = `url('${el.dataset.bg}')`; }), { root, rootMargin: '200% 0px' });
+    root.querySelectorAll('[data-bg]').forEach(el => obs.observe(el));
+  }
+  const cuadro = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+  const ocio = (f, t = 1500) => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: t }) : setTimeout(f, 200));
 
   function irA(i) {
     const el = i < 0 ? root.querySelector('#sm-top') : root.querySelector('#cap-' + (i + 1));
@@ -116,7 +128,9 @@
     async abrir(n) {
       root = document.getElementById('view-storymap');
       if (!iniciado) {
-        iniciado = true; root.innerHTML = plantilla();
+        iniciado = true; root.innerHTML = plantilla(); fondosDiferidos();
+        // Primero se deja pintar la portada; el mapa y lo demás se arman después.
+        await cuadro();
         wrap = document.createElement('div'); wrap.className = 'inm-mapa';
         wrap.innerHTML = '<div id="smMap"></div><div class="sm-cap" id="smCap"></div><div class="sm-leyenda" id="smLeyenda" aria-live="polite"></div>';
         root.querySelector('.inmersivo .inm-slot').appendChild(wrap);
@@ -132,7 +146,7 @@
         const obsPaso = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) irPaso(+en.target.dataset.i, +en.target.dataset.j); }), { root, rootMargin: esMovil() ? '-50% 0px -25% 0px' : '-30% 0px -30% 0px' });
         root.querySelectorAll('.paso').forEach(p => obsPaso.observe(p));
         // Apenas una sección inmersiva asoma, el mapa ya está ahí con su primer paso.
-        const obsInm = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting && pasoActual?.split(':')[0] != en.target.dataset.i) irPaso(+en.target.dataset.i, 0); }), { root, rootMargin: '0px 0px -20% 0px' });
+        const obsInm = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting && pasoActual?.split(':')[0] != en.target.dataset.i) irPaso(+en.target.dataset.i, 0); }), { root, rootMargin: '0px 0px 30% 0px' });
         root.querySelectorAll('.inmersivo').forEach(s => obsInm.observe(s));
         // Capítulo activo (puntos laterales y dirección de la página).
         const obsCap = new IntersectionObserver(ents => ents.forEach(en => { if (en.isIntersecting) marcarCapitulo(+en.target.dataset.i); }), { root, rootMargin: '-50% 0px -50% 0px' });
@@ -147,13 +161,13 @@
           const p = root.scrollTop / Math.max(1, root.scrollHeight - root.clientHeight); barra.style.transform = `scaleX(${p.toFixed(4)})`;
           const ps = root.scrollTop > root.clientHeight * .8; if (ps !== pasado) { pasado = ps; root.classList.toggle('pasado', ps); } }); }, { passive: true });
         root.addEventListener('click', (e) => { const a = e.target.closest('[data-ir]'); if (!a) return; e.preventDefault(); irA(+a.dataset.ir); });
-        irPaso(0, 0);
+        // El primer paso del mapa se dibuja en un momento libre, mientras se lee la portada (o antes, si se baja).
+        if (!n) ocio(() => { if (!pasoActual) irPaso(0, 0); }, 2500);
         // Precarga en segundo plano de los datos de toda la historia, para que no se lean recién al llegar a cada capítulo.
         const ids = new Set(); M4.CAPITULOS.forEach(c => c.pasos.forEach(p => p.capas.forEach(x => ids.add(typeof x === 'string' ? x : x.id))));
         const cola2 = [...ids].map(id => M4.CAT[id]).filter(sp => sp && sp.carga && sp.tipo !== 'raster');
-        const ocio = window.requestIdleCallback || ((f) => setTimeout(() => f({ timeRemaining: () => 8 }), 200));
-        const siguiente = () => { const sp = cola2.shift(); if (!sp) return; sp.carga().catch(() => {}).finally(() => ocio(siguiente)); };
-        ocio(siguiente);
+        const siguiente = () => { const sp = cola2.shift(); if (!sp) return; sp.carga().catch(() => {}).finally(() => ocio(siguiente, 4000)); };
+        setTimeout(() => ocio(siguiente, 4000), 1500);
       }
       setTimeout(() => map.invalidateSize(), 60);
       if (n) { const el = root.querySelector('#cap-' + Math.max(1, Math.min(M4.CAPITULOS.length, n))); if (el) root.scrollTop = el.offsetTop; }

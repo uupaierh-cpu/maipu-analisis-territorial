@@ -4,7 +4,9 @@ window.M4 = window.M4 || {};
   'use strict';
   const cache = {};
   M4.get = (f) => cache[f] || (cache[f] = fetch('data/' + f).then(r => { if (!r.ok) throw new Error('No se pudo leer ' + f); return r.json(); }));
-  M4.fmt = (n, d = 0) => (n == null || n === '' || isNaN(n)) ? '—' : Number(n).toLocaleString('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  // Un formateador por cantidad de decimales, creado una sola vez (toLocaleString crea uno nuevo en cada llamada y es lento).
+  const NF = {};
+  M4.fmt = (n, d = 0) => (n == null || n === '' || isNaN(n)) ? '—' : (NF[d] || (NF[d] = new Intl.NumberFormat('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d }))).format(Number(n));
   M4.esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   // Cifras: única fuente para los textos ({{clave}} se reemplaza por el valor formateado).

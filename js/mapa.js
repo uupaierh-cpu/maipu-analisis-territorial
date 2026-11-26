@@ -111,13 +111,20 @@
       const renderer = c.renderer || (c.renderer = L.canvas({ pane: c.pane, padding: .3, tolerance: spec.geom === 'linea' ? 4 : 0 }));
       const st = c.st, g = spec.geom === 'punto' ? 'punto' : spec.geom;
       const estilo = (gg, p) => M4.pasaFiltro(p, fl) ? ver(gg, st, p) : OCULTO;
-      c.layer = L.geoJSON({ type: 'FeatureCollection', features: c.datos }, {
+      // Las capas grandes se arman por partes, un bloque por cuadro, para no congelar la página (scroll fluido).
+      const BLOQUE = 900, grande = c.datos.length > BLOQUE * 1.5;
+      const capa = c.layer = L.geoJSON(grande ? null : { type: 'FeatureCollection', features: c.datos }, {
         pane: c.pane, renderer, interactive: this.interactivo && spec.interactiva !== false,
         style: f => estilo(g, f.properties),
         pointToLayer: (f, ll) => L.circleMarker(ll, Object.assign({ pane: c.pane, renderer }, estilo('punto', f.properties)))
       });
       if (this.interactivo && spec.interactiva !== false) c.layer.on('click', (e) => { L.DomEvent.stopPropagation(e); this.alClic && this.alClic(e, c); });
       c.layer.addTo(this.map);
+      if (grande) for (let i = 0; i < c.datos.length; i += BLOQUE) {
+        if (i) await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+        if (c.layer !== capa) return;  // se redibujó mientras tanto
+        capa.addData({ type: 'FeatureCollection', features: c.datos.slice(i, i + BLOQUE) });
+      }
       if (spec.rotulo && c.rotulos) {
         const r = spec.rotulo; c.rot = L.layerGroup();
         feats.filter(f => !r.filtro || r.filtro(f.properties)).forEach(f => {

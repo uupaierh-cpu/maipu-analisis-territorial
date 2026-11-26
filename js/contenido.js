@@ -80,7 +80,7 @@
       bajada: 'Dirección y acumulación de flujo, red de escurrimiento derivada y cuenca aportante al tramo anegado.',
       intro: `<p>Con el modelo de elevación calculamos la <b>dirección de flujo</b> de cada celda (hacia cuál de sus 8 vecinas baja el agua) y la <b>acumulación</b> (cuánta superficie drena a través de ella). Las celdas con mucha superficie aguas arriba forman la <b>red de escurrimiento derivada</b>. Seguimos en el corredor de la RP 50, entre Rodeo del Medio y Fray Luis Beltrán.</p>`,
       pasos: [
-        { texto: `<h3>Acumulación</h3><p>Cuanto más claro, más superficie drena a través de esa celda. Se dibujan líneas que bajan de suroeste a noreste, siguiendo la pendiente, y <b>cruzan la RP 50</b> (en rojo).</p>`, capas: [...ubic, 'area_detalle', 'acumulacion', 'sombreado_corr'], leyenda: ['acumulacion', 'rutas'] },
+        { texto: `<h3>Acumulación</h3><p>Cuanto más azul y oscuro, más superficie drena a través de esa celda. Se dibujan líneas que bajan de suroeste a noreste, siguiendo la pendiente, y <b>cruzan la RP 50</b> (en rojo).</p>`, capas: [...ubic, 'area_detalle', 'acumulacion', 'sombreado_corr'], leyenda: ['acumulacion', 'rutas'] },
         { texto: `<h3>Red derivada y canales</h3><p>En azul, la red derivada con umbral de 36 ha. En verde agua, los canales y acequias reales del Departamento General de Irrigación: en Maipú gran parte del agua corre por ellos.</p>`, capas: [...ubic, 'red_36', 'canales', 'area_detalle', 'acumulacion', 'sombreado_corr'], leyenda: ['red_36', 'canales'] },
         { texto: `<h3>La cuenca del tramo anegado</h3><p>El polígono celeste es la <b>cuenca aportante</b> al punto anegado de la RP 50, al oeste de Rodeo del Medio: {{cuenca_km2}} km², {{cuenca_desnivel}} m de desnivel y un cauce principal de {{cuenca_cauce_km}} km que baja desde el suroeste.</p>`, capas: [...ubic, 'salida', 'tramo_anegado', 'cauce', 'red_36', 'canales', 'cuenca', 'area_detalle', 'acumulacion', 'sombreado_corr'], leyenda: ['tramo_anegado', 'cauce', 'cuenca', 'salida'] }
       ],
@@ -150,7 +150,7 @@
       capas: [...ubic, 'cotas', 'perfiles', 'curvas', 'area_detalle', 'sombreado_corr', 'hipsometria'], leyenda: ['perfiles', 'curvas', 'cotas', 'hipsometria'] },
     { id: 'agua', titulo: 'Agua y escurrimiento', color: '#2f6fa8', vista: 'corredor', cap: 5,
       resumen: 'Acumulación de flujo, red derivada y cuenca del tramo anegado.',
-      lectura: 'Fondo azul: acumulación de flujo (más claro, más superficie drena por ahí). Líneas azules: red de escurrimiento derivada. Verde agua: canales y acequias reales. Polígono celeste: cuenca que drena al tramo anegado de la RP 50.',
+      lectura: 'Fondo azul: acumulación de flujo (más azul y oscuro, más superficie drena por ahí). Líneas azules: red de escurrimiento derivada. Verde agua: canales y acequias reales. Polígono celeste: cuenca que drena al tramo anegado de la RP 50.',
       capas: [...ubic, 'tramo_anegado', 'cauce', 'red_36', 'canales', 'cuenca', 'area_detalle', 'acumulacion', 'sombreado_corr'], leyenda: ['tramo_anegado', 'cauce', 'red_36', 'canales', 'cuenca'] },
     { id: 'paradas_agua', titulo: 'Paradas y escurrimiento', color: '#3f5f86', vista: 'maipu', cap: 6,
       resumen: 'Qué paradas revisar por su relación con el agua.',
