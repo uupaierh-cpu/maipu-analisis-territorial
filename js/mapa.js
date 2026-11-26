@@ -24,37 +24,66 @@
   };
 
   // ---------- Gestor de capas
+  // Los elementos que no pasan el filtro se dibujan ocultos: así cambiar un filtro es solo reestilizar, no reconstruir.
+  const OCULTO = { stroke: false, fill: false, opacity: 0, fillOpacity: 0, radius: 0 };
+  const firmaGeo = (c) => JSON.stringify([c.rotulos, c.rotulos ? c.filtro : null]);
   class Gestor {
-    constructor(map, opts = {}) { this.map = map; this.capas = new Map(); this.orden = []; this.oyentes = []; this.interactivo = opts.interactivo !== false; this.alClic = opts.alClic; }
+    constructor(map, opts = {}) { this.map = map; this.capas = new Map(); this.dormidas = new Map(); this.orden = []; this.oyentes = []; this.interactivo = opts.interactivo !== false; this.alClic = opts.alClic; }
     on(fn) { this.oyentes.push(fn); }
-    avisar() { this.oyentes.forEach(f => f(this)); }
+    avisar() { if (!this.silencio) this.oyentes.forEach(f => f(this)); }
     activas() { return this.orden.map(id => this.capas.get(id)).filter(Boolean); }
     esta(id) { return this.capas.has(id); }
 
     async activar(id, cfg = {}) {
       const spec = M4.CAT[id]; if (!spec) return;
       let c = this.capas.get(id);
+      // Una capa que se apagó antes conserva sus geometrías: se reutiliza en vez de reconstruirla.
+      if (!c && this.dormidas.has(id)) { c = this.dormidas.get(id); this.dormidas.delete(id); this.capas.set(id, c); this.orden.unshift(id); this.reordenar(); }
       if (!c) {
         const pane = 'p_' + id; if (!this.map.getPane(pane)) this.map.createPane(pane);
         c = { id, spec, pane, visible: true, opacidad: spec.tipo === 'raster' ? spec.opacidad : 1, st: spec.tipo === 'raster' ? null : M4.estiloInicial(id), filtro: spec.filtro ? Object.assign({}, spec.filtro) : null, rotulos: !!spec.rotulo, layer: null, rot: null, datos: null };
         this.capas.set(id, c); this.orden.unshift(id); this.reordenar();
       }
+      if (cfg.reset && spec.tipo !== 'raster') { c.st = M4.estiloInicial(id); c.filtro = spec.filtro ? Object.assign({}, spec.filtro) : null; }
       if (cfg.estilo) c.st = Object.assign(M4.estiloInicial(id), cfg.estilo);
       if ('filtro' in cfg) c.filtro = cfg.filtro;
       if ('rotulos' in cfg) c.rotulos = cfg.rotulos;
       if ('opacidad' in cfg) c.opacidad = cfg.opacidad;
-      await this.dibujar(c); this.avisar(); return c;
+      // Si la capa ya está dibujada con la misma configuración, no se rehace (clave para que el scroll no se trabe).
+      const firma = JSON.stringify([c.st, c.filtro, c.rotulos]);
+      const volver = () => {
+        if (c.layer && !this.map.hasLayer(c.layer)) {
+          // Lienzo nuevo para la capa que vuelve (el anterior se descartó al apagarla).
+          if (spec.tipo !== 'raster') { c.renderer = L.canvas({ pane: c.pane, padding: .3, tolerance: spec.geom === 'linea' ? 4 : 0 }); c.layer.eachLayer(l => { l.options.renderer = c.renderer; }); }
+          c.layer.addTo(this.map);
+        }
+        if (c.rot && !this.map.hasLayer(c.rot)) c.rot.addTo(this.map); };
+      if (c.layer && firma === c.firma) { volver(); this.aplicarOpacidad(c); return c; }
+      // Mismo filtro y mismos rótulos, distinto estilo: se reestiliza sin reconstruir las geometrías.
+      if (c.layer && spec.tipo !== 'raster' && c.firma && firmaGeo(c) === c.firmaGeo) {
+        volver(); M4.prepararEstilo(c.st, c.datos); const st = c.st, g = spec.geom;
+        const fl = c.filtro; c.nVisibles = c.datos.filter(f => M4.pasaFiltro(f.properties, fl)).length;
+        c.layer.setStyle(f => M4.pasaFiltro(f.properties, fl) ? M4.estiloLeaflet(g === 'punto' ? 'punto' : g, st, f.properties) : OCULTO);
+        c.firma = firma; this.avisar(); return c;
+      }
+      await this.dibujar(c); c.firma = JSON.stringify([c.st, c.filtro, c.rotulos]); c.firmaGeo = firmaGeo(c); this.avisar(); return c;
     }
     desactivar(id) {
       const c = this.capas.get(id); if (!c) return;
-      if (c.layer) this.map.removeLayer(c.layer); if (c.rot) this.map.removeLayer(c.rot);
-      this.capas.delete(id); this.orden = this.orden.filter(x => x !== id); this.avisar();
+      if (c.layer) this.map.removeLayer(c.layer); if (c.rot) this.map.removeLayer(c.rot); if (c.renderer) { this.map.removeLayer(c.renderer); c.renderer = null; }
+      if (c.layer && c.spec.tipo !== 'raster') this.dormidas.set(id, c);
+      this.capas.delete(id); this.orden = this.orden.filter(x => x !== id); if (!this.silencio) this.avisar();
     }
     // Deja activas exactamente las capas indicadas, en ese orden (la primera arriba).
     async conjunto(lista) {
       const ids = lista.map(x => typeof x === 'string' ? x : x.id);
-      [...this.capas.keys()].forEach(id => { if (!ids.includes(id)) this.desactivar(id); });
-      for (const x of [...lista].reverse()) await this.activar(typeof x === 'string' ? x : x.id, typeof x === 'string' ? {} : x);
+      this.silencio = true;
+      try {
+        [...this.capas.keys()].forEach(id => { if (!ids.includes(id)) this.desactivar(id); });
+        // Primero se cargan todos los datos en paralelo; después se dibuja.
+        await Promise.all(ids.map(id => { const sp = M4.CAT[id]; return sp && sp.carga && sp.tipo !== 'raster' ? sp.carga() : null; }));
+        for (const x of [...lista].reverse()) await this.activar(typeof x === 'string' ? x : x.id, typeof x === 'string' ? { reset: true } : Object.assign({ reset: true }, x));
+      } finally { this.silencio = false; }
       this.orden = ids.filter(id => this.capas.has(id)); this.reordenar(); this.avisar();
     }
     reordenar() { const n = this.orden.length; this.orden.forEach((id, i) => { const p = this.map.getPane('p_' + id); if (p) p.style.zIndex = 300 + (n - i) * 5; }); }
@@ -73,14 +102,16 @@
       }
       if (!c.datos) { const d = await spec.carga(); c.datos = spec.filtroBase ? d.features.filter(f => spec.filtroBase(f.properties)) : d.features; }
       M4.prepararEstilo(c.st, c.datos);
-      const feats = c.datos.filter(f => M4.pasaFiltro(f.properties, c.filtro));
+      const feats = c.datos.filter(f => M4.pasaFiltro(f.properties, c.filtro)), fl = c.filtro;
       c.nVisibles = feats.length;
-      const renderer = L.canvas({ pane: c.pane, padding: .3, tolerance: spec.geom === 'linea' ? 4 : 0 });
+      // Un solo lienzo por capa, reutilizado en cada redibujo (antes se creaba uno nuevo cada vez y se acumulaban).
+      const renderer = c.renderer || (c.renderer = L.canvas({ pane: c.pane, padding: .3, tolerance: spec.geom === 'linea' ? 4 : 0 }));
       const st = c.st, g = spec.geom === 'punto' ? 'punto' : spec.geom;
-      c.layer = L.geoJSON({ type: 'FeatureCollection', features: feats }, {
+      const estilo = (gg, p) => M4.pasaFiltro(p, fl) ? M4.estiloLeaflet(gg, st, p) : OCULTO;
+      c.layer = L.geoJSON({ type: 'FeatureCollection', features: c.datos }, {
         pane: c.pane, renderer, interactive: this.interactivo && spec.interactiva !== false,
-        style: f => M4.estiloLeaflet(g, st, f.properties),
-        pointToLayer: (f, ll) => L.circleMarker(ll, Object.assign({ pane: c.pane, renderer }, M4.estiloLeaflet('punto', st, f.properties)))
+        style: f => estilo(g, f.properties),
+        pointToLayer: (f, ll) => L.circleMarker(ll, Object.assign({ pane: c.pane, renderer }, estilo('punto', f.properties)))
       });
       if (this.interactivo && spec.interactiva !== false) c.layer.on('click', (e) => { L.DomEvent.stopPropagation(e); this.alClic && this.alClic(e, c); });
       c.layer.addTo(this.map);
@@ -99,7 +130,7 @@
       }
       this.aplicarOpacidad(c);
     }
-    async restilizar(id) { const c = this.capas.get(id); if (c) { await this.dibujar(c); this.avisar(); } }
+    async restilizar(id) { if (this.capas.has(id)) await this.activar(id); }
 
     // Identificación: todos los elementos de todas las capas visibles bajo un punto.
     identificar(latlng, tolPx = 6) {
@@ -111,7 +142,7 @@
         if (!c.visible || c.spec.tipo === 'raster' || !c.layer || c.spec.interactiva === false) continue;
         const hits = [];
         c.layer.eachLayer(l => {
-          if (hits.length >= 6) return;
+          if (hits.length >= 6 || !M4.pasaFiltro(l.feature.properties, c.filtro)) return;
           if (l instanceof L.CircleMarker) { if (map.latLngToLayerPoint(l.getLatLng()).distanceTo(P) <= l.getRadius() + tolPx) hits.push(l.feature); return; }
           const b = l.getBounds(); if (!b.isValid()) return;
           if (l instanceof L.Polygon) {

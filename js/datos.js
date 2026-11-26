@@ -24,14 +24,15 @@ window.M4 = window.M4 || {};
   M4.celdasGeo = async () => {
     if (celdasGeo) return celdasGeo;
     const { celdas } = await M4.get('celdas.json');
-    const lejos = (x) => x ? 'Sigue lejos' : 'A 400 m o menos';
-    celdasGeo = { type: 'FeatureCollection', features: celdas.map(([la, lo, pob, act, a1, a2, a3, sl, st]) => ({
+    // Solo celdas lejos en 2051 sin cambios (act 1 o 2). Las de act 0 son celdas casi vacías (≤ 0,5 hab.) que el
+    // mapa del proyecto ya descartaba; sumadas son menos del 2 % y solo ensuciaban el dibujo.
+    const lejos = (x) => x ? 'Sigue lejos' : 'Se acerca';
+    celdasGeo = { type: 'FeatureCollection', features: celdas.filter(c => c[3] > 0).map(([la, lo, pob, act, a1, a2, a3, sl, st]) => ({
       type: 'Feature', geometry: cuadrado(la, lo),
       properties: {
         poblacion_2051: pob,
-        situacion_actual: act === 1 ? 'Lejos en 2022' : act === 2 ? 'Se suma en 2051' : 'Cerca hoy',
-        con_A1: lejos(a1), con_A2: lejos(a2), con_A3: lejos(a3),
-        efecto_A3: act ? (a3 ? 'Sigue lejos' : 'Se acerca') : (a3 ? 'Sigue lejos' : 'Cerca hoy'),
+        situacion_actual: act === 1 ? 'Lejos en 2022' : 'Se suma en 2051',
+        con_A1: lejos(a1), con_A2: lejos(a2), con_A3: lejos(a3), efecto_A3: lejos(a3),
         salidas_dia_A2: sl, sin_transbordo_A2: st ? 'sí' : 'no'
       } })) };
     return celdasGeo;

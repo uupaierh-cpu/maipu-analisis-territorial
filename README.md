@@ -4,8 +4,8 @@ Aplicación web estática del Trabajo Final de Cartografía Aplicada (UMaza, 202
 
 | Sección | Dirección | Qué tiene |
 |---|---|---|
-| **Historia** (StoryMap, portada) | `#/storymap`, `#/storymap/1` … `#/storymap/9` | Se abre al entrar. Portada a pantalla completa, presentación y objetivos, índice de capítulos y los 9 capítulos (problema, crecimiento, red actual, relieve, agua, paradas y agua, alternativas, propuesta, lo que queda). Cada capítulo: banner con imagen propia, texto de lectura, sección inmersiva (mapa a pantalla completa con tarjetas: al bajar, el mapa cambia de capas), banda de cifras, gráficos con texto al lado, nota metodológica y botón "Explorar estas capas en el visor GIS". |
-| **Visor GIS** | `#/visor` | Todas las capas (40, en 7 grupos) para explorar libremente. |
+| **Historia** (StoryMap, portada) | `#/storymap`, `#/storymap/1` … `#/storymap/8` | Se abre al entrar. Portada a pantalla completa, presentación y objetivos, índice de capítulos y los 8 capítulos (problema, crecimiento, red actual, relieve, agua, paradas y agua, alternativas, propuesta; el último incluye lo que la propuesta no resuelve). Cada capítulo: banner con imagen propia, texto de lectura, sección inmersiva (mapa a pantalla completa con tarjetas: al bajar, el mapa cambia de capas), banda de cifras, gráficos con texto al lado, nota metodológica y botón "Explorar este tema en el visor GIS". |
+| **Visor GIS** | `#/visor`, `#/visor?tema=relieve` | Panel con tres pestañas. **Temas**: 8 mapas listos (uno por capítulo) con su guía de lectura y leyenda. **Capas**: las capas activas con su editor y el catálogo por grupos, con una línea que explica cada capa; las capas técnicas (umbrales alternativos, candidatos descartados, etc.) quedan ocultas salvo que se pidan. **Fondo**: mapa base. |
 | **Acerca** | `#/acerca` | Equipo, metodología, fuentes, limitaciones y créditos. |
 
 ### Funciones del visor
@@ -37,6 +37,13 @@ vercel --prod
 ```
 `.vercelignore` deja afuera el `.bat`, el `.ps1` y `_fuente/`.
 
+## Subir los cambios a GitHub y Vercel
+Doble clic en **`SUBIR_A_GITHUB_Y_VERCEL.bat`** (necesita Git para Windows: https://git-scm.com/download/win).
+- Opción **1**: publica en la web oficial (rama `main`).
+- Opción **2**: sube a la rama `prueba`; Vercel arma un link de vista previa sin tocar la web oficial.
+
+Copia esta carpeta tal como está al repositorio `uupaierh-cpu/maipu-analisis-territorial`, usando una copia aparte en `%LOCALAPPDATA%\maipu-deploy`, así la carpeta de OneDrive nunca se modifica. La primera vez puede abrirse el navegador para iniciar sesión en GitHub. Si no hay cambios, avisa y no sube nada.
+
 ## Estructura (una sola fuente de datos)
 ```
 index.html            estructura y navegación
@@ -56,12 +63,14 @@ img/                  rásters en Web Mercator, logo y portada
 _fuente/prep.py       genera data/ e img/ desde los GeoPackage del proyecto
 _fuente/prep2.py      genera data/cifras.json
 _fuente/prep3.py      genera las imágenes de portada y banners (img/banner_*.jpg)
+_fuente/prep4.py      exporta las rutas del IGN a data/rutas.json
 ```
 StoryMap y Visor usan **el mismo catálogo y los mismos archivos**: no hay datos duplicados.
 
 ### Cómo editar
 - **Un texto de la Historia**: `js/contenido.js`, en `M4.CAPITULOS`. Cada capítulo tiene `kicker`, `titulo`, `bajada` (banner), `intro` (texto de lectura), `pasos` (tarjetas del mapa: `texto`, `capas` que se prenden y `leyenda`), `cifras`, `figuras` (gráfico + texto), `nota`, `vista` (`maipu` o `corredor`) y `visor` (capas que abre el botón al visor). Dentro del texto, `{{lejos_2022}}` se reemplaza por la cifra de `data/cifras.json`.
 - **Las imágenes de los banners** (`img/banner_*.jpg`) se generan con `_fuente/prep3.py` a partir de los mismos datos de `data/`.
+- **Un tema del visor**: `js/contenido.js`, en `M4.TEMAS` (`titulo`, `resumen`, `lectura`, `capas`, `leyenda`, `vista`, `cap`).
 - **Una cifra**: `data/cifras.json` (cambia en todas las secciones a la vez).
 - **Una capa nueva**: agregar el GeoJSON en `data/` y una entrada en `M4.CATALOGO` (`js/catalogo.js`) con `id`, `grupo`, `nombre`, `geom` (`punto`, `linea` o `poligono`), `carga: 'archivo.json'`, `campos`, `desc`, `fuente` y `estilo`. Aparece sola en el visor.
 - **Colores del sitio**: variables al principio de `css/app.css`.

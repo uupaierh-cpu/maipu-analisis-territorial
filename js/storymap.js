@@ -6,7 +6,7 @@
   const esc = M4.esc, T = (s) => M4.tpl(s || '');
   let root, map, G, wrap, iniciado = false, capActual = -1, pasoActual = null, cola = Promise.resolve(), turno = 0;
   const num = (i) => String(i + 1).padStart(2, '0');
-  const enlaceVisor = (cap, i) => `#/visor?c=${cap.visor.join(',')}&v=${cap.vista}&desde=${i + 1}${cap.extra || ''}`;
+  const enlaceVisor = (cap, i) => `#/visor?tema=${cap.tema}&desde=${i + 1}`;
 
   function plantilla() {
     const caps = M4.CAPITULOS;
@@ -15,7 +15,7 @@
         <p class="hero-k">Trabajo Final · Cartografía Aplicada · UMaza 2026</p>
         <h1>Maipú<br>a 400 metros</h1>
         <p class="hero-dek">Quién vive lejos del colectivo en Maipú, Mendoza, cómo cambia eso con el crecimiento urbano al 2051 y qué red de transporte lo reduce, considerando el relieve, el agua y el ordenamiento territorial.</p>
-        <p class="hero-aut">L. V. Moschella · L. De Angelis · C. Quiles · R. Sánchez</p>
+        <p class="hero-aut">L. De Angelis · C. Quiles · R. Sánchez</p>
         <div class="hero-acc"><a class="btn-hero" href="#cap-1" data-ir="0">Comenzar la historia ↓</a><a class="btn-hero ghost" href="#/visor">Abrir el visor GIS</a></div>
       </div>
       <div class="hero-cifras">
@@ -26,7 +26,7 @@
     </header>`;
     const intro = `<section class="sm-presenta">
       <div class="col2">
-        <div class="lectura-grande"><p class="capitular">Cinco minutos caminando. Esa es la distancia que, en general, una persona está dispuesta a hacer para tomar un colectivo. En Maipú, decenas de miles de personas viven más lejos que eso, y la ciudad sigue creciendo justo donde la red es más rala.</p>
+        <div class="lectura-grande"><p class="capitular">Cinco minutos caminando. Esa es la distancia que, en general, una persona está dispuesta a hacer para tomar un colectivo. En Maipú, decenas de miles de personas viven más lejos que eso, y la ciudad sigue creciendo justo donde la red es menos densa.</p>
         <p>Este trabajo mide el problema, lo explica con el territorio (crecimiento, oferta de transporte, relieve y escurrimiento) y compara alternativas para resolverlo al 2051.</p></div>
         <aside class="objetivos"><h2>Objetivos</h2><ol>
           <li><b>Medir</b> cuánta población vive a más de 400 m caminando de una parada, hoy y en 2051.</li>
@@ -39,7 +39,7 @@
     const capitulos = caps.map((c, i) => `
     <article class="capitulo" id="cap-${i + 1}" data-i="${i}" style="--c:${c.color}">
       <header class="banner${c.claro ? ' claro' : ''}" style="background-image:url('img/banner_${i + 1}.jpg')">
-        <div class="banner-in"><span class="b-num">${num(i)}</span><p class="b-k">${esc(c.kicker)}</p><h2>${esc(c.titulo)}</h2><p class="b-dek">${esc(c.bajada)}</p></div>
+        <div class="banner-in"><span class="b-num">${num(i)}</span><p class="b-k">${esc(c.kicker)}</p><h2>${esc(c.titulo)}</h2>${c.bajada ? `<p class="b-dek">${esc(c.bajada)}</p>` : ''}</div>
       </header>
       <div class="lectura">${T(c.intro)}</div>
       <section class="inmersivo" data-i="${i}" aria-label="Mapa del capítulo ${i + 1}">
@@ -50,11 +50,11 @@
       ${(c.figuras || []).map(f => f.ancho ? `<figure class="figura ancha"><div class="fig-g tablewrap" data-g="${f.g}"></div></figure>` : `<figure class="figura"><div class="fig-g" data-g="${f.g}"></div><figcaption class="fig-txt">${T(f.texto)}</figcaption></figure>`).join('')}
       ${c.cierre ? `<div class="lectura cierre">${T(c.cierre)}</div>` : ''}
       ${c.nota ? `<aside class="nota-cap"><span>Para leer con cuidado</span><p>${T(c.nota)}</p></aside>` : ''}
-      <div class="cap-pie"><a class="btn-visor" href="${enlaceVisor(c, i)}">Explorar estas capas en el visor GIS <span aria-hidden="true">→</span></a>${i < caps.length - 1 ? `<a class="sig" href="#cap-${i + 2}" data-ir="${i + 1}">Siguiente: ${esc(caps[i + 1].kicker)} ↓</a>` : ''}</div>
+      <div class="cap-pie"><a class="btn-visor" href="${enlaceVisor(c, i)}">Explorar este tema en el visor GIS <span aria-hidden="true">→</span></a>${i < caps.length - 1 ? `<a class="sig" href="#cap-${i + 2}" data-ir="${i + 1}">Siguiente: ${esc(caps[i + 1].kicker)} ↓</a>` : ''}</div>
     </article>`).join('');
     const fin = `<footer class="sm-cierre">
       <div class="cierre-in"><p class="hero-k">Fin del recorrido</p><h2>Todas las capas, para explorarlas libremente</h2>
-      <p>El visor GIS reúne las 40 capas del proyecto: se pueden prender, ordenar, cambiar su simbología, filtrar, consultar y medir.</p>
+      <p>El visor GIS organiza las capas del proyecto en temas listos para explorar. También se pueden combinar libremente, cambiar su simbología, filtrar, consultar y medir.</p>
       <div class="hero-acc"><a class="btn-hero" href="#/visor">Abrir el visor GIS</a><a class="btn-hero ghost" href="#/acerca">Fuentes y créditos</a></div></div>
       <div class="cierre-pie"><img src="img/logo_umaza.png" alt="" width="36" height="36"><span>Universidad Juan Agustín Maza · Ingeniería en Agrimensura · Cartografía Aplicada 2026 · Docentes: Ing. Agrim. L. Martínez e Ing. Agrim. É. Escudero</span></div>
     </footer>`;
@@ -88,7 +88,8 @@
     root.querySelectorAll('.paso').forEach(p => p.classList.toggle('activo', p.dataset.i == i && p.dataset.j == j));
     wrap.querySelector('#smCap').textContent = `${num(i)} · ${cap.kicker}`;
     const t = ++turno;
-    cola = cola.then(async () => { if (t !== turno) return; await G.conjunto(paso.capas); if (t === turno) leyenda(paso); }).catch(console.error);
+    // Pequeña espera: si se baja rápido y se saltean pasos, solo se dibuja el último.
+    cola = cola.then(() => new Promise(r => setTimeout(r, 90))).then(async () => { if (t !== turno) return; await G.conjunto(paso.capas); if (t === turno) leyenda(paso); }).catch(console.error);
   }
 
   function marcarCapitulo(i) {
@@ -140,9 +141,19 @@
         obsTop.observe(root.querySelector('.sm-presenta')); obsTop.observe(root.querySelector('#sm-top'));
         // Barra de progreso
         const barra = root.querySelector('#smBarra');
-        root.addEventListener('scroll', () => { const p = root.scrollTop / Math.max(1, root.scrollHeight - root.clientHeight); barra.style.transform = `scaleX(${p})`; root.classList.toggle('pasado', root.scrollTop > root.clientHeight * .8); }, { passive: true });
+        // La barra de progreso se actualiza una vez por cuadro, no en cada evento de scroll.
+        let pendiente = false, pasado = false;
+        root.addEventListener('scroll', () => { if (pendiente) return; pendiente = true; requestAnimationFrame(() => { pendiente = false;
+          const p = root.scrollTop / Math.max(1, root.scrollHeight - root.clientHeight); barra.style.transform = `scaleX(${p.toFixed(4)})`;
+          const ps = root.scrollTop > root.clientHeight * .8; if (ps !== pasado) { pasado = ps; root.classList.toggle('pasado', ps); } }); }, { passive: true });
         root.addEventListener('click', (e) => { const a = e.target.closest('[data-ir]'); if (!a) return; e.preventDefault(); irA(+a.dataset.ir); });
         irPaso(0, 0);
+        // Precarga en segundo plano de los datos de toda la historia, para que no se lean recién al llegar a cada capítulo.
+        const ids = new Set(); M4.CAPITULOS.forEach(c => c.pasos.forEach(p => p.capas.forEach(x => ids.add(typeof x === 'string' ? x : x.id))));
+        const cola2 = [...ids].map(id => M4.CAT[id]).filter(sp => sp && sp.carga && sp.tipo !== 'raster');
+        const ocio = window.requestIdleCallback || ((f) => setTimeout(() => f({ timeRemaining: () => 8 }), 200));
+        const siguiente = () => { const sp = cola2.shift(); if (!sp) return; sp.carga().catch(() => {}).finally(() => ocio(siguiente)); };
+        ocio(siguiente);
       }
       setTimeout(() => map.invalidateSize(), 60);
       if (n) { const el = root.querySelector('#cap-' + Math.max(1, Math.min(M4.CAPITULOS.length, n))); if (el) root.scrollTop = el.offsetTop; }

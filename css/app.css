@@ -108,7 +108,7 @@ svg .pf-area{fill:#e2d6bb} svg .pf-line{fill:none;stroke:#6b5a3a;stroke-width:1.
 .btn-hero:hover{transform:translateY(-2px)}
 .btn-hero.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.55)}
 .btn-hero.ghost:hover{border-color:#fff}
-.hero-cifras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid rgba(255,255,255,.18);background:rgba(13,17,20,.55);backdrop-filter:blur(4px)}
+.hero-cifras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid rgba(255,255,255,.18);background:rgba(13,17,20,.72)}
 .hero-cifras div{padding:20px clamp(20px,3vw,40px) 22px;border-right:1px solid rgba(255,255,255,.12)}
 .hero-cifras div:first-child{padding-left:clamp(20px,6vw,96px)}
 .hero-cifras b{display:block;font-size:clamp(28px,3.2vw,44px);line-height:1;letter-spacing:-.02em;color:#cdbdf7;font-variant-numeric:tabular-nums}
@@ -127,7 +127,7 @@ svg .pf-area{fill:#e2d6bb} svg .pf-line{fill:none;stroke:#6b5a3a;stroke-width:1.
 .objetivos li{counter-increment:o;position:relative;padding:10px 0 12px 38px;border-bottom:1px solid var(--rule);font-size:15px}
 .objetivos li::before{content:counter(o,decimal-leading-zero);position:absolute;left:0;top:11px;font:600 13px var(--mono);color:var(--accent)}
 .sec-t{font:600 12px var(--mono);text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:72px 0 16px;padding-top:14px;border-top:1px solid var(--rule)}
-.indice{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.indice{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .indice a{position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:190px;padding:18px;border-radius:6px;overflow:hidden;color:#fff;text-decoration:none;background-color:#1b1f22;background-position:70% center;background-size:cover;isolation:isolate;transition:transform .2s}
 .indice a::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,rgba(10,12,14,.92) 10%,rgba(10,12,14,.35) 70%,rgba(10,12,14,.15))}
 .indice a::after{content:"";position:absolute;left:0;top:0;width:100%;height:4px;background:var(--c);filter:brightness(1.6) saturate(.9)}
@@ -349,3 +349,45 @@ svg .pf-area{fill:#e2d6bb} svg .pf-line{fill:none;stroke:#6b5a3a;stroke-width:1.
   .sm-leyenda{top:52px;bottom:auto;max-height:30%}
 }
 @media (max-width:560px){ .sm-leyenda{max-width:54%;max-height:24%;font-size:10.5px} .sm-leyenda .lg-it{font-size:10.5px;margin:1px 0} }
+.lbl.ruta{font-size:10px;font-weight:700;color:#fff;background:#a61e1e;padding:1px 5px;border-radius:3px;text-shadow:none;transform:translate(-50%,-50%);box-shadow:0 0 0 1.5px #fff}
+/* visor: pestañas, temas y catálogo didáctico */
+.v-tabs{display:grid;grid-template-columns:1.2fr 1.2fr 1fr;gap:4px;padding:8px 14px;border-bottom:1px solid var(--rule);background:var(--paper)}
+.v-tabs button{border:1px solid transparent;background:none;border-radius:6px;padding:7px 6px;font-weight:700;font-size:13.5px;color:var(--muted);cursor:pointer}
+.v-tabs button[aria-selected=true]{background:var(--sheet);color:var(--ink);border-color:var(--rule);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.v-cuenta{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--soft);font-size:11px;color:var(--ink);margin-left:2px}
+.v-intro{font-size:13px;color:var(--muted);margin:12px 0 10px}
+.v-temas{display:flex;flex-direction:column;gap:8px}
+.tema{border:1px solid var(--rule);border-left:4px solid var(--c);border-radius:6px;background:var(--sheet);overflow:hidden}
+.tema.on{box-shadow:0 2px 10px rgba(15,20,18,.1);border-color:var(--c)}
+.tema-b{display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;cursor:pointer}
+.tema-b b{display:block;font-size:14px;color:var(--ink)}
+.tema-b span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+.tema.on .tema-b{background:color-mix(in srgb,var(--c) 8%,#fff)}
+.tema:not(.on) .tema-b:hover{background:var(--paper)}
+.tema-c{padding:4px 12px 12px}
+.tema-l{font-size:13px;line-height:1.5;margin:6px 0 10px;color:#2f3634}
+.tema-l span{display:block;font:600 10.5px var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--c);margin-bottom:3px}
+.tema-ley{font-size:12.5px;background:var(--paper);border-radius:5px;padding:8px 10px}
+.tema-ley:empty{display:none}
+.tema-acc{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.tema-acc a.btn-sm{text-decoration:none}
+.alt-sel{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:4px;margin:6px 0 4px}
+.alt-sel button{border:1px solid var(--rule);background:var(--sheet);border-radius:5px;padding:6px 4px;font-weight:700;font-size:12.5px;cursor:pointer}
+.alt-sel button.on{background:var(--c);border-color:var(--c);color:#fff}
+.grp summary{list-style:none;padding:8px 0 6px}
+.grp summary::-webkit-details-marker{display:none}
+.grp summary b{display:block;font-size:13.5px}
+.grp summary b::before{content:"▸";display:inline-block;width:14px;color:var(--muted);transition:transform .15s}
+.grp[open] summary b::before{transform:rotate(90deg)}
+.grp summary span{display:block;font-weight:400;font-size:12px;color:var(--muted);padding-left:14px}
+.cat-it{padding:5px 0 5px 14px;cursor:pointer}
+.cat-it span{display:flex;flex-direction:column}
+.cat-it b{font-weight:600;font-size:13px}
+.cat-it small{font-size:11.5px;color:var(--muted);line-height:1.35;margin-top:1px}
+.cat-it em{font-style:normal;font:500 10px var(--mono);color:var(--muted);border:1px solid var(--rule);border-radius:3px;padding:0 3px;align-self:flex-start;margin-top:2px}
+.v-tecnicas{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--soft)}
+
+/* rendimiento del scroll: el navegador no pinta ni calcula los bloques de texto fuera de pantalla */
+.lectura,.banda-cifras,.figura,.nota-cap,.cap-pie,.sm-cierre{content-visibility:auto;contain-intrinsic-size:auto 420px}
+.inm-mapa,.inm-slot{contain:layout paint}
+.paso{will-change:opacity}
