@@ -2,19 +2,28 @@
 (function (M4) {
   'use strict';
   const fmt = M4.fmt, esc = M4.esc;
-  const POR_DEFECTO = ['localidades', 'distritos', 'limite', 'prop_mod', 'prop_ali', 'prop_dir', 'paradas_v1', 'red_actual', 'celdas'];
-  let map, G, root, herramienta = 'identificar', iniciado = false, sincronizar = true;
+  const TEMA_INICIAL = 'poblacion';
+  let map, G, root, herramienta = 'identificar', iniciado = false, sincronizar = true, temaActivo = null, altSel = 3, verTecnicas = false;
 
   if (window.proj4) proj4.defs('EPSG:5344', '+proj=tmerc +lat_0=-90 +lon_0=-69 +k=1 +x_0=2500000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 
   const html = `
   <div class="visor">
     <aside class="v-panel" id="vPanel" aria-label="Capas del mapa">
-      <div class="v-ph"><h2>Capas</h2><a class="link-sm" href="#/storymap" id="vVolver">← Volver a la investigación</a></div>
+      <div class="v-ph"><h2>Visor GIS</h2><a class="link-sm" href="#/storymap" id="vVolver">← Volver a la historia</a></div>
+      <div class="v-tabs" role="tablist" aria-label="Secciones del panel">
+        <button type="button" role="tab" data-tab="temas" aria-selected="true">Temas</button>
+        <button type="button" role="tab" data-tab="capas" aria-selected="false">Capas <span class="v-cuenta" id="vCuenta"></span></button>
+        <button type="button" role="tab" data-tab="fondo" aria-selected="false">Fondo</button>
+      </div>
       <div class="v-scroll">
-        <section><h3 class="v-h3">En el mapa <span class="muted" id="vCuenta"></span></h3><p class="v-hint">Arrastrá ⠿ para cambiar el orden. La capa de arriba se dibuja encima.</p><ol class="v-activas" id="vActivas"></ol></section>
-        <section><h3 class="v-h3">Agregar capas</h3><div id="vCatalogo"></div></section>
-        <section><h3 class="v-h3">Mapa de fondo</h3><div class="v-fondos" id="vFondos"></div></section>
+        <section data-pane="temas" role="tabpanel"><p class="v-intro">Elegí un tema: el mapa carga las capas necesarias y te explica cómo leerlo.</p><div class="v-temas" id="vTemas"></div></section>
+        <section data-pane="capas" role="tabpanel" hidden>
+          <h3 class="v-h3">En el mapa</h3><p class="v-hint">⚙ cambia color, simbología, filtro y transparencia. Arrastrá ⠿ para ordenar: la capa de arriba se dibuja encima.</p><ol class="v-activas" id="vActivas"></ol>
+          <h3 class="v-h3">Agregar capas</h3><div id="vCatalogo"></div>
+          <label class="v-tecnicas"><input type="checkbox" id="vTecnicas"> Mostrar también las capas técnicas <span class="muted" id="vNTec"></span></label>
+        </section>
+        <section data-pane="fondo" role="tabpanel" hidden><h3 class="v-h3">Mapa de fondo</h3><div class="v-fondos" id="vFondos"></div></section>
       </div>
     </aside>
     <button class="v-plegar" id="vPlegar" aria-controls="vPanel" aria-expanded="true" title="Mostrar u ocultar el panel de capas">◂</button>
@@ -80,9 +89,49 @@
   }
   function abrirPerfil(k) { const el = root.querySelector('#vPerfil'); el.hidden = false; M4.perfil(el, map, k, { cerrar: () => { el.hidden = true; if (el._mk) map.removeLayer(el._mk); } }); }
 
+  // ---------------- pestañas y temas
+  function pestana(t) {
+    root.querySelectorAll('.v-tabs [data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
+    root.querySelectorAll('[data-pane]').forEach(p => p.hidden = p.dataset.pane !== t);
+    root.querySelector('.v-scroll').scrollTop = 0;
+  }
+  const leyendaHTML = (ids) => ids.map(id => G.capas.get(id)).filter(Boolean).map(c => { const it = c.spec.tipo === 'raster' ? (c.spec.leyenda || []) : M4.leyendaDe(c.spec, c.st);
+    return it.length ? `<div class="lg-b"><div class="lg-t">${esc(c.spec.nombre)}</div>${it.map(M4.muestraHTML).join('')}</div>` : ''; }).join('');
+  function renderTemas() {
+    const el = root.querySelector('#vTemas');
+    el.innerHTML = M4.TEMAS.map(t => { const on = t.id === temaActivo;
+      return `<article class="tema${on ? ' on' : ''}" style="--c:${t.color}">
+        <button type="button" class="tema-b" data-tema="${t.id}" aria-expanded="${on}"><b>${esc(t.titulo)}</b><span>${esc(t.resumen)}</span></button>
+        ${on ? `<div class="tema-c">
+          ${t.alternativas ? `<div class="alt-sel" role="group" aria-label="Alternativa">${['Sin cambios', 'A1', 'A2', 'A3'].map((n, j) => `<button type="button" data-alt="${j}" class="${j === altSel ? 'on' : ''}">${n}</button>`).join('')}</div>` : ''}
+          <p class="tema-l"><span>Cómo leer el mapa</span>${esc(t.lectura)}</p>
+          <div class="tema-ley">${leyendaHTML(t.leyenda)}</div>
+          <div class="tema-acc"><a class="btn-sm" href="#/storymap/${t.cap}">Leer en la historia</a><button type="button" class="btn-sm ghost" data-ir="capas">Ajustar capas →</button></div>
+        </div>` : ''}
+      </article>`; }).join('');
+  }
+  async function aplicarTema(id, mover = true) {
+    const t = M4.TEMAS.find(x => x.id === id) || M4.TEMAS[0]; temaActivo = t.id;
+    let capas = t.capas;
+    if (t.alternativas) { const p = [M4.PRESETS.sinCambios, M4.PRESETS.A1, M4.PRESETS.A2, M4.PRESETS.A3][altSel]; capas = capas.map(x => (x.id || x) === 'celdas' ? p : x); }
+    renderTemas();
+    await G.conjunto(capas);
+    if (mover) map.flyToBounds(M4.VISTAS[t.vista], { duration: .6 });
+    renderTemas();
+  }
+  function bindPanel() {
+    root.querySelector('.v-tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) pestana(b.dataset.tab); });
+    root.querySelector('#vTemas').addEventListener('click', async e => {
+      const b = e.target.closest('[data-tema]'); if (b) { if (b.dataset.tema === temaActivo) return; return aplicarTema(b.dataset.tema); }
+      const a = e.target.closest('[data-alt]'); if (a) { altSel = +a.dataset.alt; return aplicarTema(temaActivo, false); }
+      if (e.target.closest('[data-ir=capas]')) pestana('capas'); });
+    root.querySelector('#vTecnicas').addEventListener('change', e => { verTecnicas = e.target.checked; renderCatalogo(); });
+  }
+
   // ---------------- panel de capas
   function renderActivas() {
-    const ol = root.querySelector('#vActivas'); const act = G.activas(); root.querySelector('#vCuenta').textContent = `(${act.length})`;
+    const ol = root.querySelector('#vActivas'); const act = G.activas(); root.querySelector('#vCuenta').textContent = act.length;
+    if (temaActivo) { const box = root.querySelector('.tema.on .tema-ley'); const t = M4.TEMAS.find(x => x.id === temaActivo); if (box && t) box.innerHTML = leyendaHTML(t.leyenda); }
     const abiertas = new Set([...ol.querySelectorAll('.lyr.edit')].map(x => x.dataset.id));
     ol.innerHTML = act.map(c => { const ley = (c.spec.tipo === 'raster' ? (c.spec.leyenda || []) : M4.leyendaDe(c.spec, c.st)).map(M4.muestraHTML).join('');
       return `<li class="lyr${abiertas.has(c.id) ? ' edit' : ''}" data-id="${c.id}">
@@ -149,10 +198,15 @@
       await re(); });
     li.addEventListener('input', (e) => { const t = e.target; const o = t.parentElement.querySelector('output'); if (o) o.textContent = t.dataset.a === 'op' || t.dataset.a === 'relleno' ? t.value + ' %' : t.value; if (t.dataset.a === 'op') G.setOpacidad(id, 1 - t.value / 100); });
   }
+  const corta = (t) => { const s = String(t || '').split(/(?<=\.)\s/)[0]; return s.length > 110 ? s.slice(0, 107) + '…' : s; };
   function renderCatalogo() {
-    const el = root.querySelector('#vCatalogo');
-    el.innerHTML = M4.GRUPOS.map(g => `<details class="grp"><summary>${esc(g)}</summary>${M4.CATALOGO.filter(c => c.grupo === g).map(c => `<label class="cat-it" title="${esc(c.desc)}"><input type="checkbox" data-id="${c.id}"> <span>${esc(c.nombre)}</span></label>`).join('')}</details>`).join('');
-    el.addEventListener('change', e => { const id = e.target.dataset.id; if (!id) return; e.target.checked ? G.activar(id) : G.desactivar(id); });
+    const el = root.querySelector('#vCatalogo'); const abiertos = new Set([...el.querySelectorAll('details[open]')].map(d => d.dataset.g));
+    root.querySelector('#vNTec').textContent = `(${M4.CATALOGO.filter(c => c.tecnica).length})`;
+    el.innerHTML = M4.GRUPOS.map(g => { const items = M4.CATALOGO.filter(c => c.grupo === g && (verTecnicas || !c.tecnica)); if (!items.length) return '';
+      return `<details class="grp" data-g="${esc(g)}" ${abiertos.has(g) ? 'open' : ''}><summary><b>${esc(g)}</b><span>${esc((M4.GRUPO_DESC || {})[g] || '')}</span></summary>${items.map(c => `<label class="cat-it"><input type="checkbox" data-id="${c.id}" ${G.esta(c.id) ? 'checked' : ''}><span><b>${esc(c.nombre)}</b>${c.tecnica ? ' <em>técnica</em>' : ''}<small>${esc(corta(c.desc))}</small></span></label>`).join('')}</details>`; }).join('');
+  }
+  function renderFondos() {
+    root.querySelector('#vCatalogo').addEventListener('change', e => { const id = e.target.dataset.id; if (!id) return; e.target.checked ? G.activar(id) : G.desactivar(id); });
     const f = root.querySelector('#vFondos');
     f.innerHTML = Object.entries(M4.FONDOS).map(([k, v]) => `<label><input type="radio" name="vfondo" value="${k}" ${k === map.getFondo() ? 'checked' : ''}> ${esc(v.n)}</label>`).join('');
     f.addEventListener('change', e => { map.setFondo(e.target.value); urlSync(); });
@@ -215,10 +269,14 @@
         root.querySelector('#vInfoX').onclick = () => { root.querySelector('#vInfo').hidden = true; if (resalte) { map.removeLayer(resalte); resalte = null; } };
         root.querySelector('#vPlegar').onclick = (e) => { const p = root.querySelector('.visor'); p.classList.toggle('plegado'); const pl = p.classList.contains('plegado'); e.currentTarget.textContent = pl ? '▸' : '◂'; e.currentTarget.setAttribute('aria-expanded', !pl); setTimeout(() => map.invalidateSize(), 220); };
         if (window.matchMedia('(max-width: 900px)').matches) { const b = root.querySelector('#vPlegar'); root.querySelector('.visor').classList.add('plegado'); b.textContent = '▸'; b.setAttribute('aria-expanded', false); }
-        renderCatalogo(); bindBuscar(); setHerramienta('identificar');
-        const c = params.get('c'); await G.conjunto(c ? c.split(',').filter(id => M4.CAT[id]) : POR_DEFECTO);
+        renderCatalogo(); renderFondos(); bindPanel(); bindBuscar(); setHerramienta('identificar');
+        const c = params.get('c');
+        if (c && !params.get('tema')) { await G.conjunto(c.split(',').filter(id => M4.CAT[id])); renderTemas(); pestana('capas'); }
+        else await aplicarTema(params.get('tema') || TEMA_INICIAL, !params.get('v'));
       } else {
-        const c = params.get('c'); if (c) { sincronizar = false; await G.conjunto(c.split(',').filter(id => M4.CAT[id])); sincronizar = true; }
+        const c = params.get('c'), t = params.get('tema');
+        if (t) { pestana('temas'); await aplicarTema(t, !params.get('v')); }
+        else if (c) { sincronizar = false; temaActivo = null; await G.conjunto(c.split(',').filter(id => M4.CAT[id])); renderTemas(); sincronizar = true; }
         if (params.get('f')) { map.setFondo(params.get('f')); }
       }
       const v = params.get('v');

@@ -39,6 +39,7 @@
         c = { id, spec, pane, visible: true, opacidad: spec.tipo === 'raster' ? spec.opacidad : 1, st: spec.tipo === 'raster' ? null : M4.estiloInicial(id), filtro: spec.filtro ? Object.assign({}, spec.filtro) : null, rotulos: !!spec.rotulo, layer: null, rot: null, datos: null };
         this.capas.set(id, c); this.orden.unshift(id); this.reordenar();
       }
+      if (cfg.reset && spec.tipo !== 'raster') { c.st = M4.estiloInicial(id); c.filtro = spec.filtro ? Object.assign({}, spec.filtro) : null; }
       if (cfg.estilo) c.st = Object.assign(M4.estiloInicial(id), cfg.estilo);
       if ('filtro' in cfg) c.filtro = cfg.filtro;
       if ('rotulos' in cfg) c.rotulos = cfg.rotulos;
@@ -54,7 +55,7 @@
     async conjunto(lista) {
       const ids = lista.map(x => typeof x === 'string' ? x : x.id);
       [...this.capas.keys()].forEach(id => { if (!ids.includes(id)) this.desactivar(id); });
-      for (const x of [...lista].reverse()) await this.activar(typeof x === 'string' ? x : x.id, typeof x === 'string' ? {} : x);
+      for (const x of [...lista].reverse()) await this.activar(typeof x === 'string' ? x : x.id, typeof x === 'string' ? { reset: true } : Object.assign({ reset: true }, x));
       this.orden = ids.filter(id => this.capas.has(id)); this.reordenar(); this.avisar();
     }
     reordenar() { const n = this.orden.length; this.orden.forEach((id, i) => { const p = this.map.getPane('p_' + id); if (p) p.style.zIndex = 300 + (n - i) * 5; }); }
