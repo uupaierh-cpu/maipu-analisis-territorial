@@ -88,7 +88,8 @@
     root.querySelectorAll('.paso').forEach(p => p.classList.toggle('activo', p.dataset.i == i && p.dataset.j == j));
     wrap.querySelector('#smCap').textContent = `${num(i)} · ${cap.kicker}`;
     const t = ++turno;
-    cola = cola.then(async () => { if (t !== turno) return; await G.conjunto(paso.capas); if (t === turno) leyenda(paso); }).catch(console.error);
+    // Pequeña espera: si se baja rápido y se saltean pasos, solo se dibuja el último.
+    cola = cola.then(() => new Promise(r => setTimeout(r, 90))).then(async () => { if (t !== turno) return; await G.conjunto(paso.capas); if (t === turno) leyenda(paso); }).catch(console.error);
   }
 
   function marcarCapitulo(i) {
@@ -140,9 +141,19 @@
         obsTop.observe(root.querySelector('.sm-presenta')); obsTop.observe(root.querySelector('#sm-top'));
         // Barra de progreso
         const barra = root.querySelector('#smBarra');
-        root.addEventListener('scroll', () => { const p = root.scrollTop / Math.max(1, root.scrollHeight - root.clientHeight); barra.style.transform = `scaleX(${p})`; root.classList.toggle('pasado', root.scrollTop > root.clientHeight * .8); }, { passive: true });
+        // La barra de progreso se actualiza una vez por cuadro, no en cada evento de scroll.
+        let pendiente = false, pasado = false;
+        root.addEventListener('scroll', () => { if (pendiente) return; pendiente = true; requestAnimationFrame(() => { pendiente = false;
+          const p = root.scrollTop / Math.max(1, root.scrollHeight - root.clientHeight); barra.style.transform = `scaleX(${p.toFixed(4)})`;
+          const ps = root.scrollTop > root.clientHeight * .8; if (ps !== pasado) { pasado = ps; root.classList.toggle('pasado', ps); } }); }, { passive: true });
         root.addEventListener('click', (e) => { const a = e.target.closest('[data-ir]'); if (!a) return; e.preventDefault(); irA(+a.dataset.ir); });
         irPaso(0, 0);
+        // Precarga en segundo plano de los datos de toda la historia, para que no se lean recién al llegar a cada capítulo.
+        const ids = new Set(); M4.CAPITULOS.forEach(c => c.pasos.forEach(p => p.capas.forEach(x => ids.add(typeof x === 'string' ? x : x.id))));
+        const cola2 = [...ids].map(id => M4.CAT[id]).filter(sp => sp && sp.carga && sp.tipo !== 'raster');
+        const ocio = window.requestIdleCallback || ((f) => setTimeout(() => f({ timeRemaining: () => 8 }), 200));
+        const siguiente = () => { const sp = cola2.shift(); if (!sp) return; sp.carga().catch(() => {}).finally(() => ocio(siguiente)); };
+        ocio(siguiente);
       }
       setTimeout(() => map.invalidateSize(), 60);
       if (n) { const el = root.querySelector('#cap-' + Math.max(1, Math.min(M4.CAPITULOS.length, n))); if (el) root.scrollTop = el.offsetTop; }

@@ -108,7 +108,7 @@ svg .pf-area{fill:#e2d6bb} svg .pf-line{fill:none;stroke:#6b5a3a;stroke-width:1.
 .btn-hero:hover{transform:translateY(-2px)}
 .btn-hero.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.55)}
 .btn-hero.ghost:hover{border-color:#fff}
-.hero-cifras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid rgba(255,255,255,.18);background:rgba(13,17,20,.55);backdrop-filter:blur(4px)}
+.hero-cifras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid rgba(255,255,255,.18);background:rgba(13,17,20,.72)}
 .hero-cifras div{padding:20px clamp(20px,3vw,40px) 22px;border-right:1px solid rgba(255,255,255,.12)}
 .hero-cifras div:first-child{padding-left:clamp(20px,6vw,96px)}
 .hero-cifras b{display:block;font-size:clamp(28px,3.2vw,44px);line-height:1;letter-spacing:-.02em;color:#cdbdf7;font-variant-numeric:tabular-nums}
@@ -386,3 +386,8 @@ svg .pf-area{fill:#e2d6bb} svg .pf-line{fill:none;stroke:#6b5a3a;stroke-width:1.
 .cat-it small{font-size:11.5px;color:var(--muted);line-height:1.35;margin-top:1px}
 .cat-it em{font-style:normal;font:500 10px var(--mono);color:var(--muted);border:1px solid var(--rule);border-radius:3px;padding:0 3px;align-self:flex-start;margin-top:2px}
 .v-tecnicas{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--soft)}
+
+/* rendimiento del scroll: el navegador no pinta ni calcula los bloques de texto fuera de pantalla */
+.lectura,.banda-cifras,.figura,.nota-cap,.cap-pie,.sm-cierre{content-visibility:auto;contain-intrinsic-size:auto 420px}
+.inm-mapa,.inm-slot{contain:layout paint}
+.paso{will-change:opacity}
