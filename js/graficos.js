@@ -30,7 +30,9 @@
       txt.setAttribute('x', Math.min(x(P.d[i]) + 6, W - 120)); txt.setAttribute('y', Math.max(14, y(P.z[i]) - 8)); txt.textContent = `${fmt(P.d[i])} m · ${fmt(P.z[i], 1)} m`;
       if (map) { const ll = [P.lat[i], P.lon[i]]; if (!mk) mk = el._mk = L.circleMarker(ll, { radius: 7, color: '#fff', weight: 2, fillColor: '#b5651d', fillOpacity: 1, pane: 'resalte' }); mk.setLatLng(ll).addTo(map); } };
     hit.addEventListener('mousemove', mover); hit.addEventListener('touchmove', mover, { passive: true });
-    hit.addEventListener('mouseleave', () => { cur.setAttribute('visibility', 'hidden'); txt.textContent = ''; if (mk && map) map.removeLayer(mk); });
+    // Borra el cursor del perfil y el punto en el mapa (también se llama al salir del paso del perfil en la historia).
+    el._limpiar = () => { cur.setAttribute('visibility', 'hidden'); txt.textContent = ''; if (mk && map) map.removeLayer(mk); };
+    hit.addEventListener('mouseleave', el._limpiar);
   };
 
   // Barras horizontales agrupadas. datos: [{etiqueta, valores:[...]}], series: [{nombre, color}]

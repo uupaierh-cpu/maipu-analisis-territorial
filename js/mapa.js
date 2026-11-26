@@ -25,7 +25,9 @@
 
   // ---------- Gestor de capas
   // Los elementos que no pasan el filtro se dibujan ocultos: así cambiar un filtro es solo reestilizar, no reconstruir.
-  const OCULTO = { stroke: false, fill: false, opacity: 0, fillOpacity: 0, radius: 0 };
+  // smoothFactor igual al de los visibles: si no, las celdas chicas (2-3 px en celular) se simplifican hasta desaparecer
+  // y no vuelven a dibujarse al mostrarlas, porque cambiar el estilo no recalcula su forma.
+  const OCULTO = { stroke: false, fill: false, opacity: 0, fillOpacity: 0, radius: 0, smoothFactor: .3 };
   // Al volver a mostrar un elemento hay que restituir explícitamente lo que OCULTO apagó.
   const VISIBLE = (g) => ({ stroke: true, opacity: 1, fill: g !== 'linea' });
   const ver = (g, st, p) => Object.assign(VISIBLE(g), M4.estiloLeaflet(g, st, p));

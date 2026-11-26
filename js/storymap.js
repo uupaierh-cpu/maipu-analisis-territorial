@@ -89,6 +89,8 @@
     llevarMapa(i);
     const cap = M4.CAPITULOS[i], paso = cap.pasos[j];
     root.querySelectorAll('.paso').forEach(p => p.classList.toggle('activo', p.dataset.i == i && p.dataset.j == j));
+    // El punto que marca el perfil sobre el mapa se borra al pasar a otro paso.
+    root.querySelectorAll('[data-g=perfil]').forEach(g => { if (!g.closest('.paso.activo') && g._limpiar) g._limpiar(); });
     wrap.querySelector('#smCap').textContent = `${num(i)} · ${cap.kicker}`;
     const t = ++turno;
     // Un cuadro de espera: si se saltean pasos al bajar rápido, solo se dibuja el último.
@@ -128,6 +130,7 @@
   }
 
   M4.storymap = {
+    gestor: () => G,
     async abrir(n) {
       root = document.getElementById('view-storymap');
       if (!iniciado) {
